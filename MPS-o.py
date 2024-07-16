@@ -200,17 +200,17 @@ def create_synthetic_dataset(X_train, y_train, num_examples_per_class, num_epoch
     )
 
     for epoch in range(num_epochs):
-        print(f"Epoch {epoch + 1}: X_synthetic shape = {X_synthetic.shape}")
+        print(f"Epoch {epoch+1}/{num_epochs}")
+        for i in range(len(X_synthetic)):
+            X_batch = X_synthetic[i:i+1]
+            y_batch = y_synthetic[i:i+1]
+            
+            # Augment data using ImageDataGenerator
+            for X_augmented, y_augmented in datagen.flow(X_batch, y_batch, batch_size=1):
+                agent.remember(X_batch.flatten(), y_batch[0], 1.0, X_augmented.flatten(), False)
+                break
 
-        # Assuming grayscale images
-        if len(X_synthetic.shape) == 3:
-            X_synthetic = np.expand_dims(X_synthetic, axis=-1)  
-
-        model = create_cnn_model(X_synthetic.shape[1:], num_classes, model_name)
-
-        model.fit(datagen.flow(X_synthetic, y_synthetic, batch_size=32), epochs=5, validation_split=0.2, callbacks=[EarlyStopping(patience=2)])
-
-        agent.remember(X_train, y_train, X_synthetic, y_synthetic, batch_size=32)
+        agent.replay(len(X_synthetic))
 
     return X_synthetic, y_synthetic
 
