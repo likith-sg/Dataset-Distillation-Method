@@ -1,7 +1,6 @@
 # MPS
 # Dataset Distillation Method
-
-These are machine learning models developed by me, featuring custom architectures. Below is a detailed breakdown of each model and their functionalities:
+These are machine learning models developed by me, featuring custom architectures. The synthetic datasets produced are primarily intended for classification tasks. Below is a detailed breakdown of each model and their functionalities:
 
 ## **MPS1**
 This script initializes with 1000 randomly selected training examples from the MNIST dataset and creates a synthetic dataset.
@@ -80,6 +79,8 @@ A more generalized script that supports multiple datasets and includes early sto
 
 **Comments**:
   - Provides detailed metrics for each epoch, including Training Loss, Testing Loss, Training Accuracy, and Testing Accuracy.
+
+## NOTE : I have used Gradient Matching as the benchmark algorithm for comparison, with all developed algorithms evaluated against it.
 
 ## **Comparison with Gradient Matching Algorithm**
 
