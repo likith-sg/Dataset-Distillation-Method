@@ -110,15 +110,15 @@ A more generalized script that supports multiple datasets and includes early sto
 
 ## MPS-o and MPS-5o are still under development and have high computational load. It is recommended NOT to run these models until they are fully developed. 
 
-**Forking the repository is prohibited.**
+## **Forking the repository is prohibited.**
 
 ## **MPS-o and MPS-5o**
 These models are collaboratively being developed by me and the CVCSI research center at RV University. We are currently exploring different CNN models and RL deep learning architectures.
 
-**Contact**:
+### **Contact**:
 If you have any questions or need further assistance, please feel free to reach out.
 
-Happy coding!
+##Happy coding!
 
 **How to Access**:
 - **Download as ZIP**: Click on the "Code" button on the repository page and select "Download ZIP" to get the entire repository in a ZIP file.
