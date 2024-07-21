@@ -78,6 +78,9 @@ A more generalized script that supports multiple datasets and includes early sto
   - MNIST: Achieved a 64% test accuracy.
   - CIFAR-10: Achieved a 31% test accuracy.
 
+**Comments**:
+  - Provides detailed metrics for each epoch, including Training Loss, Testing Loss, Training Accuracy, and Testing Accuracy.
+
 ## **Comparison with Gradient Matching Algorithm**
 
 | **Metric**          | **MPS2**                              | **Gradient Matching**                     |
@@ -105,7 +108,7 @@ A more generalized script that supports multiple datasets and includes early sto
 
 **IMPORTANT:**
 
-** MPS-o and MPS-5o are still under development and have high computational load. It is recommended NOT to run these models until they are fully developed. **
+## MPS-o and MPS-5o are still under development and have high computational load. It is recommended NOT to run these models until they are fully developed. 
 
 **Forking the repository is prohibited.**
 
