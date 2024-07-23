@@ -1,19 +1,17 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, img_to_array, array_to_img
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.applications import InceptionV3
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 import numpy as np
 import random
-
-# Import RL algorithms from stable_baselines3
 from stable_baselines3 import DQN, DDPG, TD3, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
-
-# Import Optuna for hyperparameter optimization
 import optuna
 
-# Function to select and load the dataset
+# Load the dataset
 def load_dataset(dataset_name):
     if dataset_name == "mnist":
         return tf.keras.datasets.mnist.load_data()
@@ -26,7 +24,7 @@ def load_dataset(dataset_name):
     else:
         raise ValueError("Dataset not supported.")
 
-# Defining various CNN models
+# Defining CNN models
 def create_cnn_model(input_shape, num_classes, model_name):
     if model_name == "vgg11bn":
         return create_vgg11bn(input_shape, num_classes)
@@ -131,7 +129,7 @@ def create_inceptionv3(input_shape, num_classes):
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
 
-# RL Agent for reinforcement learning
+# RL Agent creation
 class RLAgent:
     def __init__(self, state_size, action_size, algorithm, study=None):
         self.state_size = state_size
@@ -178,11 +176,10 @@ class RLAgent:
 
     def optimize_hyperparameters(self):
         def objective(trial):
-            # Sample hyperparameters
             self.epsilon_decay = trial.suggest_uniform('epsilon_decay', 0.95, 0.999)
             self.learning_rate = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
 
-            # Initialize RL model based on algorithm
+            # Initialize RL models
             if self.algorithm == "dqn":
                 self.model = DQN('MlpPolicy', verbose=1, tensorboard_log="./dqn/", learning_rate=self.learning_rate)
             elif self.algorithm == "ddpg":
@@ -225,7 +222,6 @@ class RLAgent:
 
 # Function to create synthetic dataset using RL agent
 def create_synthetic_dataset(X_train, y_train, num_images_per_class, num_epochs, cnn_model_name, rl_algorithm):
-    # Initialize RL Agent
     rl_agent = RLAgent(X_train.shape[1:], len(np.unique(y_train)), rl_algorithm)
 
     # Data augmentation with ImageDataGenerator
@@ -251,16 +247,23 @@ def create_synthetic_dataset(X_train, y_train, num_images_per_class, num_epochs,
     return X_train, y_train
 
 # Reward function design
-def calculate_reward(state, next_state, label):
-    # Basic reward function example
-    if np.array_equal(next_state, state) and np.argmax(label) == np.argmax(label):
-        reward = 1.0
-    else:
-        reward = 0.0
+def calculate_reward(state, next_state, label, model, original_data):
+    state = state / 255.0
+    next_state = next_state / 255.0
+    similarity = np.mean(np.abs(state - next_state))  
+    similarity_reward = 1.0 / (1.0 + similarity) 
+    synthetic_data = np.expand_dims(next_state, axis=0) 
+    synthetic_label = np.argmax(label)
+    predictions = model.predict(synthetic_data)
+    predicted_label = np.argmax(predictions[0])
+    classification_reward = 1.0 if predicted_label == synthetic_label else 0.0
 
-    return reward
+    # Final reward
+    total_reward = 0.5 * similarity_reward + 0.5 * classification_reward
 
-# Main script execution
+    return total_reward
+
+# Main 
 if __name__ == "__main__":
     epochs_dict = {
         "mnist": 10,
@@ -275,7 +278,7 @@ if __name__ == "__main__":
     rl_algorithm = input("Enter RL algorithm (dqn, ddpg, td3, ppo): ").lower()
     num_images_per_class = int(input("Enter number of images per class (1, 10, 50): "))
 
-    # Set the number of epochs based on the dataset
+    # Minimum number of epochs
     num_epochs = epochs_dict.get(dataset_name, 10)
 
     # Load the selected dataset
@@ -288,7 +291,7 @@ if __name__ == "__main__":
     if len(X_train.shape) < 4:
         X_train = np.expand_dims(X_train, axis=-1)
 
-    # Select subset of training examples (if needed for performance)
+    # Select subset of training examples
     X_train_subset, _, y_train_subset, _ = train_test_split(X_train, y_train, train_size=num_images_per_class * len(np.unique(y_train)))
 
     # Create CNN model based on user input
