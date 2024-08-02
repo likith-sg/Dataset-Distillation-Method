@@ -76,6 +76,7 @@ A more generalized script that supports multiple datasets and includes early sto
 **Performance**:
   - MNIST: Achieved a 64% test accuracy.
   - CIFAR-10: Achieved a 31% test accuracy.
+  - FashionMNIST: Achieved a 58% test accuracy.
 
 **Comments**:
   - Provides detailed metrics for each epoch, including Training Loss, Testing Loss, Training Accuracy, and Testing Accuracy.
@@ -94,13 +95,14 @@ A more generalized script that supports multiple datasets and includes early sto
 
 - **Gradient Matching**:
   - **Code Link**: [Gradient Matching Code](https://github.com/likith-sg/Gradient-Matching)
-  - **Performance**: Achieves a test accuracy of 97% on MNIST and 51% on CIFAR-10.
+  - **Performance**: Achieves a test accuracy of 97% on MNIST, 83% on FashionMNIST and 51% on CIFAR-10.
   - **Computational Load**: High computational load with a training time of 4 hours.
 
 - **MPS2**:
   - **Performance**:
     - MNIST: 64% test accuracy.
     - CIFAR-10: 31% test accuracy.
+    - FashionMNIST: 58% test accuracy.
   - **Computational Load**: Low, with a training time of just 20 minutes.
   - **Compatibility**: Can run on any machine with an integrated GPU, no need for a dedicated GPU.
 
