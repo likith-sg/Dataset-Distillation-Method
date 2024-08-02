@@ -87,6 +87,7 @@ A more generalized script that supports multiple datasets and includes early sto
 | **Metric**          | **MPS2**                              | **Gradient Matching**                     |
 |---------------------|---------------------------------------|-------------------------------------------|
 | **MNIST Test Accuracy**  | 64%                                   | 97%                                       |
+| **FashionMNIST Test Accuracy** | 58%                                   | 83%                                       |
 | **CIFAR-10 Test Accuracy** | 31%                                   | 51%                                       |
 | **Computational Load**    | Low (Integrated GPU)                  | High                                      |
 | **Training Time**         | 20 minutes                            | 4 hours                                   |
