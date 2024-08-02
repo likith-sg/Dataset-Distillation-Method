@@ -101,8 +101,8 @@ A more generalized script that supports multiple datasets and includes early sto
 - **MPS2**:
   - **Performance**:
     - MNIST: 64% test accuracy.
-    - CIFAR-10: 31% test accuracy.
     - Fashion-MNIST: 58% test accuracy.
+    - CIFAR-10: 31% test accuracy.
   - **Computational Load**: Low, with a training time of just 20 minutes.
   - **Compatibility**: Can run on any machine with an integrated GPU, no need for a dedicated GPU.
 
