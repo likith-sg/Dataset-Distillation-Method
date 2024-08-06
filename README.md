@@ -74,7 +74,7 @@ A more generalized script that supports multiple datasets and includes early sto
   - Implements early stopping to halt training when model performance ceases to improve on the validation set, preventing overfitting.
 
 **Performance**:
-  - MNIST: Achieved a 64% test accuracy.
+  - MNIST: Achieved a 75% test accuracy.
   - Fashion-MNIST: Achieved a 58% test accuracy.
   - CIFAR-10: Achieved a 31% test accuracy.
 
@@ -87,7 +87,7 @@ A more generalized script that supports multiple datasets and includes early sto
 
 | **Metric**          | **MPS2**                              | **Gradient Matching**                     |
 |---------------------|---------------------------------------|-------------------------------------------|
-| **MNIST Test Accuracy**  | 64%                                   | 97%                                       |
+| **MNIST Test Accuracy**  | 75%                                   | 97%                                       |
 | **Fashion-MNIST Test Accuracy** | 58%                                   | 83%                                       |
 | **CIFAR-10 Test Accuracy** | 31%                                   | 51%                                       |
 | **Computational Load**    | Low (Integrated GPU)                  | High                                      |
@@ -100,7 +100,7 @@ A more generalized script that supports multiple datasets and includes early sto
 
 - **MPS2**:
   - **Performance**:
-    - MNIST: 64% test accuracy.
+    - MNIST: 75% test accuracy.
     - Fashion-MNIST: 58% test accuracy.
     - CIFAR-10: 31% test accuracy.
   - **Computational Load**: Low, with a training time of just 20 minutes.
