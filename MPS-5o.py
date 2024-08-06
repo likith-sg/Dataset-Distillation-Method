@@ -2,29 +2,68 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, img_to_array, array_to_img
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.applications import InceptionV3
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 import numpy as np
 import random
+from PIL import Image
+import os
 from stable_baselines3 import DQN, DDPG, TD3, PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import optuna
+from bayes_opt import BayesianOptimization
+import matplotlib.pyplot as plt
 
-# Load the dataset
+dataset_specs = {
+    'mnist': {'input_shape': (28, 28, 1), 'num_classes': 10},
+    'fashionmnist': {'input_shape': (28, 28, 1), 'num_classes': 10},
+    'cifar10': {'input_shape': (32, 32, 3), 'num_classes': 10},
+    'cifar100': {'input_shape': (32, 32, 3), 'num_classes': 100}
+}
+
+model_input_shape = {
+    "vgg11bn": (224, 224, 3),
+    "alexnet": (227, 227, 3),
+    "lenet": (32, 32, 1),
+    "resnet": (224, 224, 3),
+    "densenet": (224, 224, 3),
+    "inceptionv3": (299, 299, 3)
+}
+
 def load_dataset(dataset_name):
-    if dataset_name == "mnist":
-        return tf.keras.datasets.mnist.load_data()
-    elif dataset_name == "fashionmnist":
-        return tf.keras.datasets.fashion_mnist.load_data()
-    elif dataset_name == "cifar10":
-        return tf.keras.datasets.cifar10.load_data()
-    elif dataset_name == "cifar100":
-        return tf.keras.datasets.cifar100.load_data()
+    datasets = {
+        "mnist": tf.keras.datasets.mnist,
+        "fashionmnist": tf.keras.datasets.fashion_mnist,
+        "cifar10": tf.keras.datasets.cifar10,
+        "cifar100": tf.keras.datasets.cifar100
+    }
+    if dataset_name in datasets:
+        return datasets[dataset_name].load_data()
     else:
         raise ValueError("Dataset not supported.")
+        
+def resize_images(X_train, target_shape):
+    resized_images = []
+    for image in X_train:
+        img = Image.fromarray((image * 255).astype(np.uint8))
+        img = img.resize(target_shape[:2], Image.ANTIALIAS)
+        resized_images.append(np.array(img, dtype=np.float32) / 255.0)
+    return np.array(resized_images, dtype=np.float32)
 
-# Defining CNN models
+def resize_images_in_batches(image_paths, target_shape, batch_size=1000):
+    num_batches = (len(image_paths) + batch_size - 1) // batch_size
+    resized_images = []
+    
+    for i in range(num_batches):
+        batch_paths = image_paths[i * batch_size:(i + 1) * batch_size]
+        batch_images = []
+        for path in batch_paths:
+            img = Image.open(path)
+            img = img.resize(target_shape[:2], Image.ANTIALIAS)
+            batch_images.append(np.array(img, dtype=np.float32) / 255.0)
+        resized_images.extend(batch_images)
+    
+    return np.array(resized_images, dtype=np.float32)
+
 def create_cnn_model(input_shape, num_classes, model_name):
     if model_name == "vgg11bn":
         return create_vgg11bn(input_shape, num_classes)
@@ -129,7 +168,6 @@ def create_inceptionv3(input_shape, num_classes):
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
 
-# RL Agent creation
 class RLAgent:
     def __init__(self, state_size, action_size, algorithm, study=None):
         self.state_size = state_size
@@ -141,13 +179,7 @@ class RLAgent:
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.algorithm = algorithm
-
-        if study is None:
-            self.study = optuna.create_study(direction='maximize')
-        else:
-            self.study = study
-
-        # Optimize RL hyperparameters
+        self.study = study or optuna.create_study(direction='maximize')
         self.optimize_hyperparameters()
 
     def remember(self, state, action, reward, next_state, done):
@@ -179,56 +211,35 @@ class RLAgent:
             self.epsilon_decay = trial.suggest_uniform('epsilon_decay', 0.95, 0.999)
             self.learning_rate = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
 
-            # Initialize RL models
-            if self.algorithm == "dqn":
-                self.model = DQN('MlpPolicy', verbose=1, tensorboard_log="./dqn/", learning_rate=self.learning_rate)
-            elif self.algorithm == "ddpg":
-                self.model = DDPG('MlpPolicy', verbose=1, tensorboard_log="./ddpg/", learning_rate=self.learning_rate)
-            elif self.algorithm == "td3":
-                self.model = TD3('MlpPolicy', verbose=1, tensorboard_log="./td3/", learning_rate=self.learning_rate)
-            elif self.algorithm == "ppo":
-                self.model = PPO('MlpPolicy', verbose=1, tensorboard_log="./ppo/", learning_rate=self.learning_rate)
-            else:
-                raise ValueError("RL algorithm not supported.")
+            self.model = {
+                "dqn": DQN,
+                "ddpg": DDPG,
+                "td3": TD3,
+                "ppo": PPO
+            }[self.algorithm]('MlpPolicy', 'CartPole-v1', verbose=1, tensorboard_log=f"./{self.algorithm}/", learning_rate=self.learning_rate)
 
-            # Train RL model for fixed iterations
             self.model.learn(total_timesteps=1000)
-
-            # Evaluate RL model
             mean_reward, _ = evaluate_policy(self.model, self.model.get_env(), n_eval_episodes=10)
-
             return mean_reward
 
         self.study.optimize(objective, n_trials=10)
-
-        # Select best hyperparameters
         self.epsilon_decay = self.study.best_params['epsilon_decay']
         self.learning_rate = self.study.best_params['learning_rate']
-
-        # Initialize RL model with best hyperparameters
-        if self.algorithm == "dqn":
-            self.model = DQN('MlpPolicy', verbose=1, tensorboard_log="./dqn/", learning_rate=self.learning_rate)
-        elif self.algorithm == "ddpg":
-            self.model = DDPG('MlpPolicy', verbose=1, tensorboard_log="./ddpg/", learning_rate=self.learning_rate)
-        elif self.algorithm == "td3":
-            self.model = TD3('MlpPolicy', verbose=1, tensorboard_log="./td3/", learning_rate=self.learning_rate)
-        elif self.algorithm == "ppo":
-            self.model = PPO('MlpPolicy', verbose=1, tensorboard_log="./ppo/", learning_rate=self.learning_rate)
-        else:
-            raise ValueError("RL algorithm not supported.")
+        self.model = {
+            "dqn": DQN,
+            "ddpg": DDPG,
+            "td3": TD3,
+            "ppo": PPO
+        }[self.algorithm]('MlpPolicy', 'CartPole-v1', verbose=1, tensorboard_log=f"./{self.algorithm}/", learning_rate=self.learning_rate)
 
     def get_study(self):
         return self.study
 
-# Function to create synthetic dataset using RL agent
 def create_synthetic_dataset(X_train, y_train, num_images_per_class, num_epochs, cnn_model_name, rl_algorithm):
     rl_agent = RLAgent(X_train.shape[1:], len(np.unique(y_train)), rl_algorithm)
-
-    # Data augmentation with ImageDataGenerator
     datagen = ImageDataGenerator(rotation_range=20, width_shift_range=0.2, height_shift_range=0.2, horizontal_flip=True)
     datagen.fit(X_train)
 
-    # Train RL agent to generate synthetic dataset
     for epoch in range(num_epochs):
         total_reward = 0
         for i in range(len(X_train)):
@@ -246,24 +257,32 @@ def create_synthetic_dataset(X_train, y_train, num_images_per_class, num_epochs,
 
     return X_train, y_train
 
-# Reward function design
 def calculate_reward(state, next_state, label, model, original_data):
     state = state / 255.0
     next_state = next_state / 255.0
     similarity = np.mean(np.abs(state - next_state))  
     similarity_reward = 1.0 / (1.0 + similarity) 
     synthetic_data = np.expand_dims(next_state, axis=0) 
-    synthetic_label = np.argmax(label)
     predictions = model.predict(synthetic_data)
     predicted_label = np.argmax(predictions[0])
-    classification_reward = 1.0 if predicted_label == synthetic_label else 0.0
-
-    # Final reward
+    classification_reward = 1.0 if predicted_label == label else 0.0
     total_reward = 0.5 * similarity_reward + 0.5 * classification_reward
-
     return total_reward
 
-# Main 
+def visualize_samples(X_synthetic, y_synthetic, num_samples=5):
+    fig, axes = plt.subplots(len(np.unique(y_synthetic)), num_samples, figsize=(num_samples, len(np.unique(y_synthetic))))
+    fig.suptitle('Synthetic Data Samples', fontsize=16)
+
+    for cls in np.unique(y_synthetic):
+        class_samples = X_synthetic[y_synthetic == cls][:num_samples]
+        for i, sample in enumerate(class_samples):
+            axes[cls, i].imshow(sample)
+            axes[cls, i].axis('off')
+            if i == 0:
+                axes[cls, i].set_title(f'Class {cls}')
+    plt.tight_layout()
+    plt.show()
+
 if __name__ == "__main__":
     epochs_dict = {
         "mnist": 10,
@@ -272,41 +291,39 @@ if __name__ == "__main__":
         "cifar100": 25
     }
 
-    # Ask user for input
     dataset_name = input("Enter dataset name (mnist, fashionmnist, cifar10, cifar100): ").lower()
     cnn_model_name = input("Enter CNN model name (vgg11bn, alexnet, lenet, resnet, densenet, inceptionv3): ").lower()
     rl_algorithm = input("Enter RL algorithm (dqn, ddpg, td3, ppo): ").lower()
     num_images_per_class = int(input("Enter number of images per class (1, 10, 50): "))
 
-    # Minimum number of epochs
     num_epochs = epochs_dict.get(dataset_name, 10)
 
-    # Load the selected dataset
     (X_train, y_train), (_, _) = load_dataset(dataset_name)
-
-    # Normalize pixel values to be between 0 and 1
-    X_train = X_train.astype('float32') / 255.0
-
-    # Ensure correct data shapes for grayscale and RGB images
     if len(X_train.shape) < 4:
         X_train = np.expand_dims(X_train, axis=-1)
+    input_shape = model_input_shape[cnn_model_name]
+    X_train = resize_images(X_train, input_shape)
 
-    # Select subset of training examples
     X_train_subset, _, y_train_subset, _ = train_test_split(X_train, y_train, train_size=num_images_per_class * len(np.unique(y_train)))
-
-    # Create CNN model based on user input
     cnn_model = create_cnn_model(X_train.shape[1:], len(np.unique(y_train)), cnn_model_name)
 
-    # Hyperparameter tuning for CNN model
     cnn_model.fit(X_train_subset, y_train_subset, epochs=num_epochs, batch_size=32, verbose=1, validation_split=0.2, callbacks=[EarlyStopping(patience=3)])
 
-    # Evaluate CNN model on original test set
     _, acc = cnn_model.evaluate(X_train_subset, y_train_subset, verbose=0)
     print(f"Accuracy of CNN model on original dataset: {acc * 100:.2f}%")
 
-    # Create synthetic dataset using RL
     X_synthetic, y_synthetic = create_synthetic_dataset(X_train_subset, y_train_subset, num_images_per_class, num_epochs, cnn_model_name, rl_algorithm)
 
-    # Evaluate synthetic dataset performance using original test set
     _, acc = cnn_model.evaluate(X_synthetic, y_synthetic, verbose=0)
     print(f"Accuracy of CNN model on synthetic dataset: {acc * 100:.2f}%")
+
+    visualize_samples(X_synthetic, y_synthetic)
+
+    dataset_name_unseen = input("Enter completely unseen dataset name (mnist, fashionmnist, cifar10, cifar100): ").lower()
+    (X_unseen, y_unseen), (_, _) = load_dataset(dataset_name_unseen)
+    if len(X_unseen.shape) < 4:
+        X_unseen = np.expand_dims(X_unseen, axis=-1)
+    X_unseen = resize_images(X_unseen, input_shape)
+
+    _, acc_unseen = cnn_model.evaluate(X_unseen, y_unseen, verbose=0)
+    print(f"Accuracy of CNN model on unseen dataset: {acc_unseen * 100:.2f}%")
