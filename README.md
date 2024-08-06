@@ -107,14 +107,12 @@ A more generalized script that supports multiple datasets and includes early sto
   - **Compatibility**: Can run on any machine with an integrated GPU, no need for a dedicated GPU.
 
 ## **Code and Repository Information**
-- **Code**: Includes comments to guide users through the synthetic data generation process. Modifications to the code are prohibited.
+- **Code**: Includes comments to guide users through the synthetic data generation process.
 - **Repository**: Download or clone the repository from [Dataset Distillation Method](https://github.com/likith-sg/Dataset-Distillation-Method.git).
 
 **IMPORTANT:**
 
 ## MPS-o and MPS-5o are still under development and have high computational load. It is recommended NOT to run these models until they are fully developed. 
-
-## **Forking the repository is prohibited.**
 
 ## **MPS-o and MPS-5o**
 These models are collaboratively being developed by me and the CVCSI research center at RV University. We are currently exploring different CNN models and RL deep learning architectures.
